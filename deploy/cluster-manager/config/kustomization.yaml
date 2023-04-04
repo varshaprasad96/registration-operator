@@ -10,18 +10,18 @@ resources:
 - operator/operator.yaml
 
 replicas:
-- name: cluster-manager
-  count: 1
+- count: 1
+  name: cluster-manager
 
 images:
-  - name: quay.io/open-cluster-management/registration-operator:latest
-    newName: quay.io/open-cluster-management/registration-operator
-    newTag: latest
+- name: quay.io/open-cluster-management/registration-operator:latest
+  newName: quay.io/open-cluster-management/registration-operator
+  newTag: v0.10.0
 
 patches:
-  - target:
-      kind: Deployment
-    patch: |-
-      - op: replace
-        path: "/spec/template/spec/containers/0/imagePullPolicy"
-        value: IfNotPresent
+- patch: |-
+    - op: replace
+      path: "/spec/template/spec/containers/0/imagePullPolicy"
+      value: IfNotPresent
+  target:
+    kind: Deployment

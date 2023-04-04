@@ -45,7 +45,7 @@ OLM_VERSION?=0.16.1
 
 PWD=$(shell pwd)
 KUSTOMIZE?=$(PWD)/$(PERMANENT_TMP_GOPATH)/bin/kustomize
-KUSTOMIZE_VERSION?=v3.5.4
+KUSTOMIZE_VERSION?=v4.5.7
 KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
 kustomize_dir:=$(dir $(KUSTOMIZE))
 
@@ -242,15 +242,30 @@ else
 endif
 
 ensure-kustomize:
-ifeq "" "$(wildcard $(KUSTOMIZE))"
-	$(info Installing kustomize into '$(KUSTOMIZE)')
-	mkdir -p '$(kustomize_dir)'
-	curl -s -f -L https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/$(KUSTOMIZE_ARCHIVE_NAME) -o '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
-	tar -C '$(kustomize_dir)' -zvxf '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
-	chmod +x '$(KUSTOMIZE)';
-else
-	$(info Using existing kustomize from "$(KUSTOMIZE)")
-endif
+# ifeq "" "$(wildcard $(KUSTOMIZE))"
+# 	$(info Installing kustomize into '$(KUSTOMIZE)')
+# 	mkdir -p '$(kustomize_dir)'
+# 	curl -s -f -L https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/$(KUSTOMIZE_ARCHIVE_NAME) -o '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+# 	tar -C '$(kustomize_dir)' -zvxf '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+# 	chmod +x '$(KUSTOMIZE)';
+# else
+# 	$(info Using existing kustomize from "$(KUSTOMIZE)")
+# endif
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+.PHONY: kustomize
+ensure-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
+$(KUSTOMIZE): $(LOCALBIN)
+	@if test -x $(LOCALBIN)/kustomize && ! $(LOCALBIN)/kustomize version | grep -q $(KUSTOMIZE_VERSION); then \
+		echo "$(LOCALBIN)/kustomize version is not expected $(KUSTOMIZE_VERSION). Removing it before installing."; \
+		rm -rf $(LOCALBIN)/kustomize; \
+	fi
+	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
 # This will call a macro called "build-image" which will generate image specific targets based on the parameters:
 # $0 - macro name
